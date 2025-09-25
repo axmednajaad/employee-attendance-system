@@ -45,6 +45,7 @@ A modern, responsive web application for managing employee attendance with a bea
 
 4. Configure environment variables:
 
+   - Copy `.env.example` to `.env`
    - Update the `.env` file with your Supabase credentials
 
 5. Start the development server:
@@ -53,7 +54,7 @@ A modern, responsive web application for managing employee attendance with a bea
    npm run dev
    ```
 
-6. Open your browser and navigate to `http://localhost:3001`
+6. Open your browser and navigate to `http://localhost:3000`
 
 ## Database Setup
 
@@ -89,15 +90,47 @@ src/
 
 ## Deployment
 
-To deploy the application:
+### Deploying to Vercel (Recommended)
 
-1. Build the production version:
+1. Push your code to GitHub
+2. Go to [vercel.com](https://vercel.com) and sign up/log in
+3. Click "New Project" and import your GitHub repository
+4. Vercel will automatically detect it's a Vite project
+5. Configure the project settings:
+   - Framework Preset: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+6. Add environment variables in the Vercel project settings:
+   - `VITE_SUPABASE_URL` = your Supabase URL
+   - `VITE_SUPABASE_KEY` = your Supabase anon key
+7. Click "Deploy" and your app will be live!
+
+### Deploying Using Vercel CLI
+
+1. Install Vercel CLI:
 
    ```bash
-   npm run build
+   npm install -g vercel
    ```
 
-2. Deploy the `dist/` folder to your preferred hosting platform
+2. Deploy:
+
+   ```bash
+   vercel
+   ```
+
+3. Follow the prompts to configure your deployment
+4. Add environment variables in the Vercel dashboard after deployment
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_KEY=your_supabase_anon_key
+```
 
 ## Contributing
 
