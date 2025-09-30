@@ -107,6 +107,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, MoreVertical } from 'lucide-react';
+import { ATTENDANCE_STATUSES } from '../constants/attendanceStatuses';
 
 const AttendanceStatusSelector = ({ 
   employeeId, 
@@ -119,11 +120,68 @@ const AttendanceStatusSelector = ({
   const dropdownRef = useRef(null);
   
   // Get attendance status options
-  const statusOptions = [
-    { value: 'present', label: 'Present', icon: CheckCircle, color: 'green', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-700' },
-    { value: 'absent', label: 'Absent', icon: XCircle, color: 'red', bgColor: 'bg-red-50', borderColor: 'border-red-200', textColor: 'text-red-700' },
-    { value: 'on_leave', label: 'On Leave', icon: Clock, color: 'yellow', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200', textColor: 'text-yellow-700' }
-  ];
+  const statusOptions = ATTENDANCE_STATUSES.map((status) => {
+    let icon, color, bgColor, borderColor, textColor;
+    switch (status) {
+      case 'Present':
+        icon = CheckCircle;
+        color = 'green';
+        bgColor = 'bg-green-50';
+        borderColor = 'border-green-200';
+        textColor = 'text-green-700';
+        break;
+      case 'Absent':
+        icon = XCircle;
+        color = 'red';
+        bgColor = 'bg-red-50';
+        borderColor = 'border-red-200';
+        textColor = 'text-red-700';
+        break;
+      case 'On duty':
+        icon = Clock;
+        color = 'blue';
+        bgColor = 'bg-blue-50';
+        borderColor = 'border-blue-200';
+        textColor = 'text-blue-700';
+        break;
+      case 'Sick':
+        icon = Clock;
+        color = 'orange';
+        bgColor = 'bg-orange-50';
+        borderColor = 'border-orange-200';
+        textColor = 'text-orange-700';
+        break;
+      case 'An Excuse':
+        icon = Clock;
+        color = 'purple';
+        bgColor = 'bg-purple-50';
+        borderColor = 'border-purple-200';
+        textColor = 'text-purple-700';
+        break;
+      case 'Holiday':
+        icon = Clock;
+        color = 'yellow';
+        bgColor = 'bg-yellow-50';
+        borderColor = 'border-yellow-200';
+        textColor = 'text-yellow-700';
+        break;
+      default:
+        icon = Clock;
+        color = 'gray';
+        bgColor = 'bg-gray-50';
+        borderColor = 'border-gray-200';
+        textColor = 'text-gray-700';
+    }
+    return {
+      value: status.toLowerCase().replace(' ', '_'),
+      label: status,
+      icon,
+      color,
+      bgColor,
+      borderColor,
+      textColor
+    };
+  });
 
   // Get the selected option for display
   const selectedOption = statusOptions.find(option => option.value === status);

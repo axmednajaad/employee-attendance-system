@@ -1,16 +1,21 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Edit } from 'lucide-react';
 import AttendanceStatusSelector from './AttendanceStatusSelector';
 
-const AttendanceTable = ({ 
-  employees, 
-  attendanceData, 
-  currentYear, 
-  currentMonth, 
-  saving, 
+const AttendanceTable = ({
+  employees,
+  attendanceData,
+  currentYear,
+  currentMonth,
+  saving,
   onStatusChange,
   currentPage,
-  itemsPerPage 
+  itemsPerPage,
+  canWriteAttendance,
+  canManageEmployees
 }) => {
+  const navigate = useNavigate();
   // Get days in month
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
@@ -83,10 +88,19 @@ const AttendanceTable = ({
                       {employee.full_name.charAt(0)}
                     </span>
                   </div>
-                  <div className="ml-4">
+                  <div className="ml-4 flex-1">
                     <div className="text-sm font-medium text-gray-900">{employee.full_name}</div>
                     <div className="text-sm text-gray-500">{employee.position}</div>
                   </div>
+                  {canManageEmployees && (
+                    <button
+                      onClick={() => navigate(`/edit-employee/${employee.employee_id}`)}
+                      className="ml-2 p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                      title="Edit employee"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -103,13 +117,32 @@ const AttendanceTable = ({
                 return (
                   <td key={i} className={`px-1 py-2 whitespace-nowrap text-center ${isWeekend ? 'bg-gray-50' : ''}`}>
                     <div className="flex justify-center">
-                      <AttendanceStatusSelector
-                        employeeId={employee.employee_id}
-                        date={date}
-                        status={status}
-                        onSave={onStatusChange}
-                        saving={saving}
-                      />
+                      {canWriteAttendance ? (
+                        <AttendanceStatusSelector
+                          employeeId={employee.employee_id}
+                          date={date}
+                          status={status}
+                          onSave={onStatusChange}
+                          saving={saving}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-28 h-9 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-600">
+                          {status ? (
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              status === 'present' ? 'bg-green-100 text-green-800' :
+                              status === 'absent' ? 'bg-red-100 text-red-800' :
+                              status === 'on_leave' ? 'bg-yellow-100 text-yellow-800' :
+                              status === 'sick' ? 'bg-orange-100 text-orange-800' :
+                              status === 'an_excuse' ? 'bg-purple-100 text-purple-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">No data</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </td>
                 );

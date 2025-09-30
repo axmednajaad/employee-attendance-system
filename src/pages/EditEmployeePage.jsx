@@ -1,19 +1,51 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { User, Users, Building, Phone, CreditCard } from 'lucide-react';
 import { DEPARTMENTS } from '../constants/departments';
 
-const EmployeeRegistrationPage = () => {
+const EditEmployeePage = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { id } = useParams();
 
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('employee_id', id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          // Remove the GMDQS prefix for display
+          const displayId = data.employee_id.startsWith('GMDQS') ? data.employee_id.substring(5) : data.employee_id;
+          setEmployeeId(displayId);
+          setFullName(data.full_name);
+          setDepartment(data.department);
+          setMobileNumber(data.mobile_number);
+        }
+      } catch (error) {
+        setError('Failed to load employee data: ' + error.message);
+      } finally {
+        setFetchLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchEmployee();
+    }
+  }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,30 +56,21 @@ const EmployeeRegistrationPage = () => {
     const fullEmployeeId = `GMDQS${employeeId}`;
 
     try {
-      // Insert employee data into Supabase
       const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('employees')
-        .insert([
-          {
-            employee_id: fullEmployeeId,
-            full_name: fullName,
-            department: department,
-            mobile_number: mobileNumber,
-            is_active: true,
-            created_by: user?.id,
-            updated_by: user?.id
-          }
-        ]);
+        .update({
+          employee_id: fullEmployeeId,
+          full_name: fullName,
+          department: department,
+          mobile_number: mobileNumber,
+          updated_by: user?.id
+        })
+        .eq('employee_id', id);
 
       if (error) throw error;
 
       setSuccess(true);
-      // Reset form
-      setEmployeeId('');
-      setFullName('');
-      setDepartment('');
-      setMobileNumber('');
       setTimeout(() => {
         navigate('/attendance');
       }, 1500);
@@ -58,6 +81,18 @@ const EmployeeRegistrationPage = () => {
     }
   };
 
+  if (fetchLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,8 +100,8 @@ const EmployeeRegistrationPage = () => {
           <div className="px-6 py-8 sm:px-10">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Employee Registration</h1>
-                <p className="mt-2 text-gray-600">Add new employees to the attendance system</p>
+                <h1 className="text-2xl font-bold text-gray-900">Edit Employee</h1>
+                <p className="mt-2 text-gray-600">Update employee information</p>
               </div>
               <div className="bg-indigo-100 p-3 rounded-full">
                 <Users className="h-8 w-8 text-indigo-600" />
@@ -83,7 +118,7 @@ const EmployeeRegistrationPage = () => {
                   </div>
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-green-800">
-                      Employee registered successfully!
+                      Employee updated successfully!
                     </h3>
                   </div>
                 </div>
@@ -216,10 +251,10 @@ const EmployeeRegistrationPage = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Registering...
+                      Updating...
                     </>
                   ) : (
-                    'Register Employee'
+                    'Update Employee'
                   )}
                 </button>
               </div>
@@ -231,4 +266,4 @@ const EmployeeRegistrationPage = () => {
   );
 };
 
-export default EmployeeRegistrationPage;
+export default EditEmployeePage;

@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import AttendanceFilters from '../components/AttendanceFilters';
 import AttendanceTable from '../components/AttendanceTable';
 import Pagination from '../components/Pagination';
+import { DEPARTMENTS } from '../constants/departments';
+import { usePermissions } from '../hooks/usePermissions.jsx';
 
 const AttendancePage = () => {
   const [employees, setEmployees] = useState([]);
@@ -14,9 +16,11 @@ const AttendancePage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const { canViewAttendance, canWriteAttendance, canExportData, canManageEmployees, loading: permissionsLoading } = usePermissions();
 
   // Helper functions
   const getDaysInMonth = (year, month) => {
@@ -53,67 +57,82 @@ const AttendancePage = () => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  // Filter employees based on search term
-  const filteredEmployees = employees.filter(employee =>
-    employee.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.department?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter employees based on search term and department
+  const filteredEmployees = employees.filter(employee => {
+    const matchesSearch = employee.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.mobile_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = departmentFilter === '' || employee.department === departmentFilter;
+    return matchesSearch && matchesDepartment;
+  });
 
-  // Fetch data
+  // Check permissions and fetch data
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError('');
-      
-      try {
-        // Fetch employees
-        const { data: employeesData, error: employeesError } = await supabase
-          .from('employees')
-          .select('*')
-          .order('full_name');
-        
-        if (employeesError) throw employeesError;
-        setEmployees(employeesData || []);
-        
-        // Fetch attendance data
-        const startDate = formatDate(currentYear, currentMonth, 1);
-        const endDate = formatDate(currentYear, currentMonth, getDaysInMonth(currentYear, currentMonth));
-        
-        const { data: attendanceData, error: attendanceError } = await supabase
-          .from('attendance')
-          .select('*')
-          .gte('date', startDate)
-          .lte('date', endDate);
-        
-        if (attendanceError) throw attendanceError;
-        
-        // Organize attendance data
-        const organizedData = {};
-        attendanceData?.forEach(record => {
-          if (!organizedData[record.employee_id]) {
-            organizedData[record.employee_id] = {};
-          }
-          organizedData[record.employee_id][record.date] = record.status;
-        });
-        
-        setAttendanceData(organizedData);
-      } catch (error) {
-        setError(error.message);
-      } finally {
+    if (!permissionsLoading) {
+      if (!canViewAttendance) {
+        setError('You do not have permission to view attendance data.');
         setLoading(false);
+        return;
       }
-    };
-    
-    fetchData();
-  }, [currentYear, currentMonth]);
+
+      const fetchData = async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+          // Fetch employees
+          const { data: employeesData, error: employeesError } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('is_active', true)
+            .order('full_name');
+
+          if (employeesError) throw employeesError;
+          setEmployees(employeesData || []);
+
+          // Fetch attendance data
+          const startDate = formatDate(currentYear, currentMonth, 1);
+          const endDate = formatDate(currentYear, currentMonth, getDaysInMonth(currentYear, currentMonth));
+
+          const { data: attendanceData, error: attendanceError } = await supabase
+            .from('attendance')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate);
+
+          if (attendanceError) throw attendanceError;
+
+          // Organize attendance data
+          const organizedData = {};
+          attendanceData?.forEach(record => {
+            if (!organizedData[record.employee_id]) {
+              organizedData[record.employee_id] = {};
+            }
+            organizedData[record.employee_id][record.date] = record.status;
+          });
+
+          setAttendanceData(organizedData);
+        } catch (error) {
+          setError(error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchData();
+    }
+  }, [currentYear, currentMonth, canViewAttendance, permissionsLoading]);
 
   // Handle attendance status change
   const handleStatusChange = async (employeeId, date, newStatus) => {
     setSaving(true);
     setError('');
-    
+
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
       // Update local state
       setAttendanceData(prev => ({
         ...prev,
@@ -122,18 +141,20 @@ const AttendancePage = () => {
           [date]: newStatus
         }
       }));
-      
+
       // Save to Supabase
       const { error } = await supabase
         .from('attendance')
         .upsert({
           employee_id: employeeId,
           date: date,
-          status: newStatus
+          status: newStatus,
+          created_by: user?.id,
+          updated_by: user?.id
         }, {
           onConflict: ['employee_id', 'date']
         });
-      
+
       if (error) throw error;
     } catch (error) {
       setError(error.message);
@@ -225,10 +246,10 @@ const AttendancePage = () => {
     }
   };
 
-  // Reset page on search
+  // Reset page on search or department filter
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, departmentFilter]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
@@ -250,20 +271,25 @@ const AttendancePage = () => {
           currentYear={currentYear}
           currentMonth={currentMonth}
           searchTerm={searchTerm}
+          departmentFilter={departmentFilter}
           employees={employees}
           filteredEmployees={filteredEmployees}
           onYearChange={setCurrentYear}
           onMonthChange={setCurrentMonth}
           onSearchChange={setSearchTerm}
+          onDepartmentFilterChange={setDepartmentFilter}
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
           onToday={handleToday}
-          onAddEmployee={handleAddEmployee}
-          onExportData={handleExportData}
+          onAddEmployee={canManageEmployees ? handleAddEmployee : null}
+          onExportData={canExportData ? handleExportData : null}
           getMonthName={getMonthName}
           getCurrentMonthDays={getCurrentMonthDays}
           yearOptions={yearOptions()}
           monthOptions={monthOptions}
+          departments={DEPARTMENTS}
+          canManageEmployees={canManageEmployees}
+          canExportData={canExportData}
         />
 
         {/* Table Section */}
@@ -283,6 +309,8 @@ const AttendancePage = () => {
                 onStatusChange={handleStatusChange}
                 currentPage={currentPage}
                 itemsPerPage={itemsPerPage}
+                canWriteAttendance={canWriteAttendance}
+                canManageEmployees={canManageEmployees}
               />
               
               <Pagination

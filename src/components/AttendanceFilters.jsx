@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Download, UserPlus, MoreVertical } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Download, UserPlus, MoreVertical, Building } from 'lucide-react';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const AttendanceFilters = ({
   currentYear,
   currentMonth,
   searchTerm,
+  departmentFilter,
   employees,
   filteredEmployees,
   onYearChange,
   onMonthChange,
   onSearchChange,
+  onDepartmentFilterChange,
   onPrevMonth,
   onNextMonth,
   onToday,
@@ -17,9 +20,13 @@ const AttendanceFilters = ({
   onExportData,
   getCurrentMonthDays,
   yearOptions,
-  monthOptions
+  monthOptions,
+  departments,
+  canManageEmployees,
+  canExportData
 }) => {
   const [isActionOpen, setIsActionOpen] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -35,6 +42,11 @@ const AttendanceFilters = ({
 
   const handleExport = () => {
     setIsActionOpen(false);
+    setShowExportDialog(true);
+  };
+
+  const confirmExport = () => {
+    setShowExportDialog(false);
     onExportData?.();
   };
 
@@ -66,7 +78,20 @@ const AttendanceFilters = ({
 
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-5 sm:p-8 mb-8">
+    <>
+      {/* Export Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onConfirm={confirmExport}
+        title="Export Attendance Data"
+        message="This will download a CSV file containing all attendance data for the current month. Do you want to proceed?"
+        confirmText="Export CSV"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-5 sm:p-8 mb-8">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 sm:space-y-6 lg:space-y-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0"> 
         </div>
@@ -95,6 +120,30 @@ const AttendanceFilters = ({
                 </svg>
               </button>
             )}
+          </div>
+
+          {/* Department Filter */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Building className="h-4 w-4 text-gray-400" />
+            </div>
+            <select
+              value={departmentFilter}
+              onChange={(e) => onDepartmentFilterChange(e.target.value)}
+              className="pl-10 pr-8 py-2 sm:py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 w-full sm:w-48 bg-white text-sm sm:text-base shadow-sm appearance-none"
+            >
+              <option value="">All Departments</option>
+              {departments?.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
           
           {/* Month/Year Navigation (Simplified styling) */}
@@ -178,33 +227,42 @@ const AttendanceFilters = ({
               >
                 <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden xs:inline">Actions</span>
-                <svg 
-                  className={`h-3 w-3 sm:h-4 sm:w-4 ml-1 transition-transform duration-200 ${isActionOpen ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ml-1 transition-transform duration-200 ${isActionOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
+
               {/* Dropdown Menu */}
               {isActionOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-10 origin-top-right animate-in fade-in-0 zoom-in-95">
-                  <button
-                    onClick={handleAddEmployee}
-                    className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-150 flex items-center"
-                  >
-                    <UserPlus className="h-4 w-4 mr-3 text-indigo-500" />
-                    Add Employee
-                  </button>
-                  <button
-                    onClick={handleExport}
-                    className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-150 flex items-center"
-                  >
-                    <Download className="h-4 w-4 mr-3 text-indigo-500" />
-                    Export Data (CSV)
-                  </button>
+                  {canManageEmployees && onAddEmployee && (
+                    <button
+                      onClick={handleAddEmployee}
+                      className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-150 flex items-center"
+                    >
+                      <UserPlus className="h-4 w-4 mr-3 text-indigo-500" />
+                      Add Employee
+                    </button>
+                  )}
+                  {canExportData && onExportData && (
+                    <button
+                      onClick={handleExport}
+                      className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors duration-150 flex items-center"
+                    >
+                      <Download className="h-4 w-4 mr-3 text-indigo-500" />
+                      Export Data (CSV)
+                    </button>
+                  )}
+                  {(!canManageEmployees || !canExportData) && (
+                    <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                      No actions available
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -241,6 +299,7 @@ const AttendanceFilters = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 

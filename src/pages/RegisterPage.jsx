@@ -27,14 +27,37 @@ const RegisterPage = () => {
     setSuccess(false);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
-      
+
+      // Assign basic permissions to the new user
+      if (data.user) {
+        const { error: permError } = await supabase
+          .from('admin_permissions')
+          .insert({
+            user_id: data.user.id,
+            can_view_attendance: true,
+            can_write_attendance: false,
+            can_export_data: false,
+            can_manage_employees: false,
+            can_manage_admins: false,
+            is_super_admin: false,
+          });
+
+        if (permError) {
+          console.error('Error assigning permissions:', permError);
+          // Don't throw, as user is created, just log the error
+        }
+      }
+
       setSuccess(true);
+      setTimeout(() => {
+        navigate('/attendance');
+      }, 1500);
     } catch (error) {
       setError(error.message);
     } finally {

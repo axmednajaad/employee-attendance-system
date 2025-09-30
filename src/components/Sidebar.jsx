@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Calendar, 
-  Users, 
-  LogOut, 
-  UserPlus, 
+import {
+  Calendar,
+  Users,
+  LogOut,
+  UserPlus,
   Home,
   Menu,
   X
 } from 'lucide-react';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const Sidebar = ({ isOpen, toggleSidebar, onLogout }) => {
   const location = useLocation();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   
   const navItems = [
     { name: 'Dashboard', path: '/attendance', icon: Home },
@@ -21,6 +23,21 @@ const Sidebar = ({ isOpen, toggleSidebar, onLogout }) => {
 
   return (
     <>
+      {/* Logout Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={() => {
+          setShowLogoutDialog(false);
+          onLogout();
+        }}
+        title="Confirm Logout"
+        message="Are you sure you want to log out of the attendance system?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        type="warning"
+      />
+
       {/* Mobile sidebar overlay */}
       {isOpen && (
         <div 
@@ -86,7 +103,7 @@ const Sidebar = ({ isOpen, toggleSidebar, onLogout }) => {
           {/* Logout button */}
           <div className="p-4 border-t">
             <button
-              onClick={onLogout}
+              onClick={() => setShowLogoutDialog(true)}
               className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100"
             >
               <LogOut className="h-5 w-5 mr-3" />
