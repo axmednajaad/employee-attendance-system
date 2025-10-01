@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { User, Users, Building, Phone, CreditCard } from 'lucide-react';
-import { DEPARTMENTS } from '../constants/departments';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { User, Users, Building, Phone, CreditCard } from "lucide-react";
+import { DEPARTMENTS } from "../constants/departments";
 
 const EditEmployeePage = () => {
-  const [employeeId, setEmployeeId] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [department, setDepartment] = useState('');
-  const [mobileNumber, setMobileNumber] = useState('');
+  const [employeeId, setEmployeeId] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [department, setDepartment] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
@@ -20,23 +20,25 @@ const EditEmployeePage = () => {
     const fetchEmployee = async () => {
       try {
         const { data, error } = await supabase
-          .from('employees')
-          .select('*')
-          .eq('employee_id', id)
+          .from("employees")
+          .select("*")
+          .eq("employee_id", id)
           .single();
 
         if (error) throw error;
 
         if (data) {
           // Remove the GMDQS prefix for display
-          const displayId = data.employee_id.startsWith('GMDQS') ? data.employee_id.substring(5) : data.employee_id;
+          const displayId = data.employee_id.startsWith("GMDQS")
+            ? data.employee_id.substring(5)
+            : data.employee_id;
           setEmployeeId(displayId);
           setFullName(data.full_name);
           setDepartment(data.department);
           setMobileNumber(data.mobile_number);
         }
       } catch (error) {
-        setError('Failed to load employee data: ' + error.message);
+        setError("Failed to load employee data: " + error.message);
       } finally {
         setFetchLoading(false);
       }
@@ -50,29 +52,47 @@ const EditEmployeePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
     setSuccess(false);
 
     const fullEmployeeId = `GMDQS${employeeId}`;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from('employees')
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // If employee_id is being changed, update attendance records first
+      if (fullEmployeeId !== id) {
+        const { error: attendanceError } = await supabase
+          .from("attendance")
+          .update({ employee_id: fullEmployeeId })
+          .eq("employee_id", id);
+
+        if (attendanceError) {
+          throw new Error(
+            `Failed to update attendance records: ${attendanceError.message}`
+          );
+        }
+      }
+
+      // Then update the employee
+      const { error: employeeError } = await supabase
+        .from("employees")
         .update({
           employee_id: fullEmployeeId,
           full_name: fullName,
           department: department,
           mobile_number: mobileNumber,
-          updated_by: user?.id
+          updated_by: user?.id,
         })
-        .eq('employee_id', id);
+        .eq("employee_id", id);
 
-      if (error) throw error;
+      if (employeeError) throw employeeError;
 
       setSuccess(true);
       setTimeout(() => {
-        navigate('/attendance');
+        navigate("/attendance");
       }, 1500);
     } catch (error) {
       setError(error.message);
@@ -100,8 +120,12 @@ const EditEmployeePage = () => {
           <div className="px-6 py-8 sm:px-10">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Edit Employee</h1>
-                <p className="mt-2 text-gray-600">Update employee information</p>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Edit Employee
+                </h1>
+                <p className="mt-2 text-gray-600">
+                  Update employee information
+                </p>
               </div>
               <div className="bg-indigo-100 p-3 rounded-full">
                 <Users className="h-8 w-8 text-indigo-600" />
@@ -112,8 +136,16 @@ const EditEmployeePage = () => {
               <div className="rounded-md bg-green-50 p-4 mb-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <svg
+                      className="h-5 w-5 text-green-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div className="ml-3">
@@ -129,12 +161,22 @@ const EditEmployeePage = () => {
               <div className="rounded-md bg-red-50 p-4 mb-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                    <h3 className="text-sm font-medium text-red-800">
+                      {error}
+                    </h3>
                   </div>
                 </div>
               </div>
@@ -143,12 +185,17 @@ const EditEmployeePage = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="sm:col-span-3">
-                  <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="employeeId"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Employee ID
                   </label>
                   <div className="mt-1 relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 text-sm font-medium">GMDQS </span>
+                      <span className="text-gray-500 text-sm font-medium">
+                        GMDQS{" "}
+                      </span>
                     </div>
                     <input
                       type="text"
@@ -161,10 +208,16 @@ const EditEmployeePage = () => {
                       placeholder="1234567"
                     />
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Changing the ID will update all related attendance records
+                  </p>
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="fullName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Full Name
                   </label>
                   <div className="mt-1 relative rounded-md shadow-sm">
@@ -185,7 +238,10 @@ const EditEmployeePage = () => {
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="department"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Department
                   </label>
                   <div className="mt-1 relative rounded-md shadow-sm">
@@ -211,7 +267,10 @@ const EditEmployeePage = () => {
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="mobileNumber"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Mobile Number
                   </label>
                   <div className="mt-1 relative rounded-md shadow-sm">
@@ -235,7 +294,7 @@ const EditEmployeePage = () => {
               <div className="flex justify-end space-x-4 pt-6">
                 <button
                   type="button"
-                  onClick={() => navigate('/attendance')}
+                  onClick={() => navigate("/attendance")}
                   className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Cancel
@@ -247,14 +306,30 @@ const EditEmployeePage = () => {
                 >
                   {loading ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       Updating...
                     </>
                   ) : (
-                    'Update Employee'
+                    "Update Employee"
                   )}
                 </button>
               </div>
