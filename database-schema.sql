@@ -3,14 +3,14 @@
 -- Employee Attendance Management System - Database Schema
 
 -- Drop the tables if needed 
--- drop table employees;
--- drop table attendance;
--- drop table admin_permissions;
+-- DROP TABLE IF EXISTS attendance CASCADE;
+-- DROP TABLE IF EXISTS employees CASCADE;
+-- DROP TABLE IF EXISTS admin_permissions CASCADE;
 
 -- Drop function if needed 
 -- DROP FUNCTION get_admin_users()
 
--- Create employees table
+-- Create employees table (same as before)
 CREATE TABLE IF NOT EXISTS employees (
   id SERIAL PRIMARY KEY,
   employee_id VARCHAR(255) UNIQUE NOT NULL,
@@ -20,20 +20,20 @@ CREATE TABLE IF NOT EXISTS employees (
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
-  created_by UUID REFERENCES auth.users(id), -- Link to Supabase auth
-  updated_by UUID REFERENCES auth.users(id)  -- Link to Supabase auth
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id)
 );
 
--- Create attendance table
+-- Create attendance table with integer foreign key
 CREATE TABLE IF NOT EXISTS attendance (
   id SERIAL PRIMARY KEY,
-  employee_id VARCHAR(255) NOT NULL,
+  employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'on_duty','on_leave', 'sick', 'an_excuse', 'holiday')),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
-  created_by UUID REFERENCES auth.users(id), -- Link to Supabase auth
-  updated_by UUID REFERENCES auth.users(id),  -- Link to Supabase auth
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id),
   UNIQUE(employee_id, date)
 );
 
@@ -41,12 +41,6 @@ CREATE TABLE IF NOT EXISTS attendance (
 CREATE INDEX IF NOT EXISTS idx_attendance_employee_id ON attendance(employee_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
 CREATE INDEX IF NOT EXISTS idx_employees_employee_id ON employees(employee_id);
-
--- 1. Foreign Key Constraint
-ALTER TABLE attendance
-ADD CONSTRAINT fk_attendance_employee
-FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
-ON DELETE CASCADE;
 
 -- 2. Additional Useful Indexes
 CREATE INDEX IF NOT EXISTS idx_employees_is_active ON employees(is_active);

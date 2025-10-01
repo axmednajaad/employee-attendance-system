@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import AttendanceFilters from '../components/AttendanceFilters';
-import AttendanceTable from '../components/AttendanceTable';
-import Pagination from '../components/Pagination';
-import { DEPARTMENTS } from '../constants/departments';
-import { usePermissions } from '../hooks/usePermissions.jsx';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import AttendanceFilters from "../components/AttendanceFilters";
+import AttendanceTable from "../components/AttendanceTable";
+import Pagination from "../components/Pagination";
+import { DEPARTMENTS } from "../constants/departments";
+import { usePermissions } from "../hooks/usePermissions.jsx";
 
 const AttendancePage = () => {
   const [employees, setEmployees] = useState([]);
@@ -14,13 +14,19 @@ const AttendancePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
-  const { canViewAttendance, canWriteAttendance, canExportData, canManageEmployees, loading: permissionsLoading } = usePermissions();
+  const {
+    canViewAttendance,
+    canWriteAttendance,
+    canExportData,
+    canManageEmployees,
+    loading: permissionsLoading,
+  } = usePermissions();
 
   // Helper functions
   const getDaysInMonth = (year, month) => {
@@ -28,8 +34,8 @@ const AttendancePage = () => {
   };
 
   const formatDate = (year, month, day) => {
-    const monthStr = String(month + 1).padStart(2, '0');
-    const dayStr = String(day).padStart(2, '0');
+    const monthStr = String(month + 1).padStart(2, "0");
+    const dayStr = String(day).padStart(2, "0");
     return `${year}-${monthStr}-${dayStr}`;
   };
 
@@ -37,8 +43,18 @@ const AttendancePage = () => {
 
   const getMonthName = (monthIndex) => {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     return months[monthIndex];
   };
@@ -53,17 +69,29 @@ const AttendancePage = () => {
   };
 
   const monthOptions = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   // Filter employees based on search term and department
-  const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredEmployees = employees.filter((employee) => {
+    const matchesSearch =
+      employee.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.mobile_number?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = departmentFilter === '' || employee.department === departmentFilter;
+    const matchesDepartment =
+      departmentFilter === "" || employee.department === departmentFilter;
     return matchesSearch && matchesDepartment;
   });
 
@@ -71,42 +99,58 @@ const AttendancePage = () => {
   useEffect(() => {
     if (!permissionsLoading) {
       if (!canViewAttendance) {
-        setError('You do not have permission to view attendance data.');
+        setError("You do not have permission to view attendance data.");
         setLoading(false);
         return;
       }
 
       const fetchData = async () => {
         setLoading(true);
-        setError('');
+        setError("");
 
         try {
           // Fetch employees
           const { data: employeesData, error: employeesError } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('is_active', true)
-            .order('full_name');
+            .from("employees")
+            .select("*")
+            .eq("is_active", true)
+            .order("full_name");
 
           if (employeesError) throw employeesError;
           setEmployees(employeesData || []);
 
-          // Fetch attendance data
+          // Fetch attendance data with employee details
           const startDate = formatDate(currentYear, currentMonth, 1);
-          const endDate = formatDate(currentYear, currentMonth, getDaysInMonth(currentYear, currentMonth));
+          const endDate = formatDate(
+            currentYear,
+            currentMonth,
+            getDaysInMonth(currentYear, currentMonth)
+          );
 
-          const { data: attendanceData, error: attendanceError } = await supabase
-            .from('attendance')
-            .select('*')
-            .gte('date', startDate)
-            .lte('date', endDate);
+          const { data: attendanceData, error: attendanceError } =
+            await supabase
+              .from("attendance")
+              .select(
+                `
+              *,
+              employees!inner (
+                id,
+                employee_id,
+                full_name,
+                department
+              )
+            `
+              )
+              .gte("date", startDate)
+              .lte("date", endDate);
 
           if (attendanceError) throw attendanceError;
 
-          // Organize attendance data
+          // Organize attendance data by employee's internal ID (integer)
           const organizedData = {};
-          attendanceData?.forEach(record => {
+          attendanceData?.forEach((record) => {
             if (!organizedData[record.employee_id]) {
+              // This is now the integer ID
               organizedData[record.employee_id] = {};
             }
             organizedData[record.employee_id][record.date] = record.status;
@@ -127,39 +171,42 @@ const AttendancePage = () => {
   // Handle attendance status change
   const handleStatusChange = async (employeeId, date, newStatus) => {
     setSaving(true);
-    setError('');
+    setError("");
 
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       // Update local state
-      setAttendanceData(prev => ({
+      setAttendanceData((prev) => ({
         ...prev,
         [employeeId]: {
           ...prev[employeeId],
-          [date]: newStatus
-        }
+          [date]: newStatus,
+        },
       }));
 
-      // Save to Supabase
-      const { error } = await supabase
-        .from('attendance')
-        .upsert({
-          employee_id: employeeId,
+      // Save to Supabase - employeeId is now the integer ID
+      const { error } = await supabase.from("attendance").upsert(
+        {
+          employee_id: employeeId, // This is now the integer ID
           date: date,
           status: newStatus,
           created_by: user?.id,
-          updated_by: user?.id
-        }, {
-          onConflict: ['employee_id', 'date']
-        });
+          updated_by: user?.id,
+        },
+        {
+          onConflict: ["employee_id", "date"],
+        }
+      );
 
       if (error) throw error;
     } catch (error) {
       setError(error.message);
       // Revert on error
-      setAttendanceData(prev => {
+      setAttendanceData((prev) => {
         const newData = { ...prev };
         if (newData[employeeId] && newData[employeeId][date]) {
           delete newData[employeeId][date];
@@ -175,58 +222,73 @@ const AttendancePage = () => {
   const handleExportData = () => {
     try {
       // Create CSV content
-      const headers = ['Employee ID', 'Full Name', 'Department', ...Array.from({ length: getDaysInMonth(currentYear, currentMonth) }, (_, i) => i + 1)];
-      const rows = filteredEmployees.map(employee => {
+      const headers = [
+        "Employee ID",
+        "Full Name",
+        "Department",
+        ...Array.from(
+          { length: getDaysInMonth(currentYear, currentMonth) },
+          (_, i) => i + 1
+        ),
+      ];
+      const rows = filteredEmployees.map((employee) => {
         const rowData = [
-          employee.employee_id,
+          employee.employee_id, // Display ID
           employee.full_name,
           employee.department,
-          ...Array.from({ length: getDaysInMonth(currentYear, currentMonth) }, (_, i) => {
-            const date = formatDate(currentYear, currentMonth, i + 1);
-            return attendanceData[employee.employee_id]?.[date] || '';
-          })
+          ...Array.from(
+            { length: getDaysInMonth(currentYear, currentMonth) },
+            (_, i) => {
+              const date = formatDate(currentYear, currentMonth, i + 1);
+              // Use employee.id (integer) to look up attendance
+              return attendanceData[employee.id]?.[date] || "";
+            }
+          ),
         ];
         return rowData;
       });
 
       // Convert to CSV format
-      let csvContent = headers.join(',') + '\n';
-      rows.forEach(row => {
-        csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+      let csvContent = headers.join(",") + "\n";
+      rows.forEach((row) => {
+        csvContent += row.map((field) => `"${field}"`).join(",") + "\n";
       });
 
       // Create download link
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `attendance_${getMonthName(currentMonth)}_${currentYear}.csv`);
-      link.style.visibility = 'hidden';
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `attendance_${getMonthName(currentMonth)}_${currentYear}.csv`
+      );
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      setError('Failed to export data: ' + error.message);
+      setError("Failed to export data: " + error.message);
     }
   };
 
   // Navigation handlers
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
-      setCurrentYear(prev => prev - 1);
+      setCurrentYear((prev) => prev - 1);
       setCurrentMonth(11);
     } else {
-      setCurrentMonth(prev => prev - 1);
+      setCurrentMonth((prev) => prev - 1);
     }
     setCurrentPage(1);
   };
 
   const handleNextMonth = () => {
     if (currentMonth === 11) {
-      setCurrentYear(prev => prev + 1);
+      setCurrentYear((prev) => prev + 1);
       setCurrentMonth(0);
     } else {
-      setCurrentMonth(prev => prev + 1);
+      setCurrentMonth((prev) => prev + 1);
     }
     setCurrentPage(1);
   };
@@ -237,7 +299,7 @@ const AttendancePage = () => {
     setCurrentPage(1);
   };
 
-  const handleAddEmployee = () => navigate('/employee-registration');
+  const handleAddEmployee = () => navigate("/employee-registration");
 
   const handlePageChange = (page, newItemsPerPage = itemsPerPage) => {
     setCurrentPage(page);
@@ -254,7 +316,6 @@ const AttendancePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* Error Display */}
         {error && (
           <div className="rounded-md bg-red-50 p-4 mb-6">
@@ -312,7 +373,7 @@ const AttendancePage = () => {
                 canWriteAttendance={canWriteAttendance}
                 canManageEmployees={canManageEmployees}
               />
-              
+
               <Pagination
                 currentPage={currentPage}
                 totalItems={filteredEmployees.length}

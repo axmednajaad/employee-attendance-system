@@ -62,33 +62,19 @@ const EditEmployeePage = () => {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // If employee_id is being changed, update attendance records first
-      if (fullEmployeeId !== id) {
-        const { error: attendanceError } = await supabase
-          .from("attendance")
-          .update({ employee_id: fullEmployeeId })
-          .eq("employee_id", id);
-
-        if (attendanceError) {
-          throw new Error(
-            `Failed to update attendance records: ${attendanceError.message}`
-          );
-        }
-      }
-
-      // Then update the employee
-      const { error: employeeError } = await supabase
+      // Now we can update directly without worrying about attendance records
+      const { error } = await supabase
         .from("employees")
         .update({
-          employee_id: fullEmployeeId,
+          employee_id: fullEmployeeId, // This can change freely now
           full_name: fullName,
           department: department,
           mobile_number: mobileNumber,
           updated_by: user?.id,
         })
-        .eq("employee_id", id);
+        .eq("id", id); // Use the internal ID which never changes
 
-      if (employeeError) throw employeeError;
+      if (error) throw error;
 
       setSuccess(true);
       setTimeout(() => {
