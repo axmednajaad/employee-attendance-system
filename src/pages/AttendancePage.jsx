@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import AttendanceFilters from "../components/AttendanceFilters";
 import AttendanceTable from "../components/AttendanceTable";
 import Pagination from "../components/Pagination";
-import { DEPARTMENTS } from "../constants/departments";
+import { useDepartments } from "../hooks/useDepartments";
 import { usePermissions } from "../hooks/usePermissions.jsx";
 
 const AttendancePage = () => {
@@ -27,6 +27,7 @@ const AttendancePage = () => {
     canManageEmployees,
     loading: permissionsLoading,
   } = usePermissions();
+  const { departments } = useDepartments();
 
   // Helper functions
   const getDaysInMonth = (year, month) => {
@@ -109,15 +110,25 @@ const AttendancePage = () => {
         setError("");
 
         try {
-          // Fetch employees
+          // Fetch employees with department names
           const { data: employeesData, error: employeesError } = await supabase
             .from("employees")
-            .select("*")
+            .select(`
+              *,
+              departments!inner (
+                name
+              )
+            `)
             .eq("is_active", true)
             .order("full_name");
 
           if (employeesError) throw employeesError;
-          setEmployees(employeesData || []);
+          // Flatten department name from join
+          const flattenedEmployees = (employeesData || []).map(emp => ({
+            ...emp,
+            department: emp.departments?.name || ''
+          }));
+          setEmployees(flattenedEmployees);
 
           // Fetch attendance data with employee details
           const startDate = formatDate(currentYear, currentMonth, 1);
@@ -137,7 +148,10 @@ const AttendancePage = () => {
                 id,
                 employee_id,
                 full_name,
-                department
+                department_id,
+                departments!inner (
+                  name
+                )
               )
             `
               )
@@ -377,7 +391,7 @@ const AttendancePage = () => {
           getCurrentMonthDays={getCurrentMonthDays}
           yearOptions={yearOptions()}
           monthOptions={monthOptions}
-          departments={DEPARTMENTS}
+          departments={departments.map(d => d.name)}
           canManageEmployees={canManageEmployees}
           canExportData={canExportData}
         />

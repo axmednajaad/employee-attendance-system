@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { User, Users, Building, Phone, CreditCard } from "lucide-react";
-import { DEPARTMENTS } from "../constants/departments";
+import { useDepartments } from "../hooks/useDepartments";
 
 const EditEmployeePage = () => {
   const [employeeId, setEmployeeId] = useState("");
   const [fullName, setFullName] = useState("");
-  const [department, setDepartment] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -15,6 +15,7 @@ const EditEmployeePage = () => {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
+  const { departments } = useDepartments();
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -34,7 +35,7 @@ const EditEmployeePage = () => {
             : data.employee_id;
           setEmployeeId(displayId);
           setFullName(data.full_name);
-          setDepartment(data.department);
+          setDepartmentId(data.department_id?.toString() || "");
           setMobileNumber(data.mobile_number);
         }
       } catch (error) {
@@ -68,7 +69,7 @@ const EditEmployeePage = () => {
         .update({
           employee_id: fullEmployeeId, // This can change freely now
           full_name: fullName,
-          department: department,
+          department_id: parseInt(departmentId),
           mobile_number: mobileNumber,
           updated_by: user?.id,
         })
@@ -232,17 +233,17 @@ const EditEmployeePage = () => {
                       <Building className="h-5 w-5 text-gray-400" />
                     </div>
                     <select
-                      name="department"
-                      id="department"
+                      name="departmentId"
+                      id="departmentId"
                       required
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
+                      value={departmentId}
+                      onChange={(e) => setDepartmentId(e.target.value)}
                       className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg"
                     >
                       <option value="">Select Department</option>
-                      {DEPARTMENTS.map((dept) => (
-                        <option key={dept} value={dept}>
-                          {dept}
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
                         </option>
                       ))}
                     </select>

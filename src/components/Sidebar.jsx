@@ -7,7 +7,8 @@ import {
   UserPlus,
   Home,
   Menu,
-  X
+  X,
+  Building
 } from 'lucide-react';
 import ConfirmationDialog from './ConfirmationDialog';
 
@@ -18,6 +19,7 @@ const Sidebar = ({ isOpen, toggleSidebar, onLogout }) => {
   const navItems = [
     { name: 'Dashboard', path: '/attendance', icon: Home },
     { name: 'Employees', path: '/employee-registration', icon: Users },
+    { name: 'Departments', path: '/departments', icon: Building },
     { name: 'Admin Users', path: '/admin-users', icon: UserPlus },
   ];
 

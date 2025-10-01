@@ -11,6 +11,7 @@ import EmployeeRegistrationPage from "./pages/EmployeeRegistrationPage";
 import EditEmployeePage from "./pages/EditEmployeePage";
 import AttendancePage from "./pages/AttendancePage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import DepartmentsPage from "./pages/DepartmentsPage";
 import Sidebar from "./components/Sidebar";
 import { supabase } from "./lib/supabase";
 import { PermissionsProvider } from "./hooks/usePermissions.jsx";
@@ -107,6 +108,18 @@ function App() {
                 isLoggedIn ? (
                   <AuthenticatedLayout>
                     <AdminUsersPage />
+                  </AuthenticatedLayout>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/departments"
+              element={
+                isLoggedIn ? (
+                  <AuthenticatedLayout>
+                    <DepartmentsPage />
                   </AuthenticatedLayout>
                 ) : (
                   <Navigate to="/login" />
