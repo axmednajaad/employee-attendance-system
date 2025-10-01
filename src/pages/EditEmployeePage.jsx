@@ -22,7 +22,7 @@ const EditEmployeePage = () => {
         const { data, error } = await supabase
           .from("employees")
           .select("*")
-          .eq("employee_id", id)
+          .eq("id", id)
           .single();
 
         if (error) throw error;
@@ -194,9 +194,6 @@ const EditEmployeePage = () => {
                       placeholder="1234567"
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Changing the ID will update all related attendance records
-                  </p>
                 </div>
 
                 <div className="sm:col-span-3">

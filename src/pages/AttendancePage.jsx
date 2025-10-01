@@ -218,6 +218,35 @@ const AttendancePage = () => {
     }
   };
 
+  const handleDeleteEmployee = async (employeeId) => {
+    try {
+      const { error } = await supabase
+        .from("employees")
+        .delete()
+        .eq("id", employeeId);
+
+      if (error) throw error;
+
+      // Remove employee from local state
+      setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
+
+      // Remove employee's attendance data from local state
+      setAttendanceData((prev) => {
+        const newData = { ...prev };
+        delete newData[employeeId];
+        return newData;
+      });
+
+      // Show success message
+      setError(""); // Clear any existing errors
+      // You could add a success state here if you want
+      console.log("Employee deleted successfully");
+    } catch (error) {
+      setError("Failed to delete employee: " + error.message);
+      throw error; // Re-throw to handle in the table component
+    }
+  };
+
   // Export data to CSV
   const handleExportData = () => {
     try {
@@ -368,6 +397,7 @@ const AttendancePage = () => {
                 currentMonth={currentMonth}
                 saving={saving}
                 onStatusChange={handleStatusChange}
+                onDeleteEmployee={handleDeleteEmployee}
                 currentPage={currentPage}
                 itemsPerPage={itemsPerPage}
                 canWriteAttendance={canWriteAttendance}
