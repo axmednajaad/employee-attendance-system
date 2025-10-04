@@ -1,8 +1,2 @@
-export const ATTENDANCE_STATUSES = [
-  'Present',
-  'Absent',
-  'On Leave',
-  'Sick',
-  'An Excuse',
-  'Holiday'
-];
+// Attendance statuses are now fetched dynamically from the database
+// See useAttendanceStatuses hook

@@ -6,6 +6,7 @@ import AttendanceTable from "../components/AttendanceTable";
 import Pagination from "../components/Pagination";
 import { useDepartments } from "../hooks/useDepartments";
 import { usePermissions } from "../hooks/usePermissions.jsx";
+import { useAttendanceStatuses } from "../hooks/useAttendanceStatuses";
 
 const AttendancePage = () => {
   const [employees, setEmployees] = useState([]);
@@ -28,6 +29,13 @@ const AttendancePage = () => {
     loading: permissionsLoading,
   } = usePermissions();
   const { departments } = useDepartments();
+  const { statuses } = useAttendanceStatuses();
+
+  // Create status map for display
+  const statusMap = statuses.reduce((acc, status) => {
+    acc[status.id] = status.name;
+    return acc;
+  }, {});
 
   // Helper functions
   const getDaysInMonth = (year, month) => {
@@ -167,7 +175,7 @@ const AttendancePage = () => {
               // This is now the integer ID
               organizedData[record.employee_id] = {};
             }
-            organizedData[record.employee_id][record.date] = record.status;
+            organizedData[record.employee_id][record.date] = record.status_id;
           });
 
           setAttendanceData(organizedData);
@@ -207,7 +215,7 @@ const AttendancePage = () => {
         {
           employee_id: employeeId, // This is now the integer ID
           date: date,
-          status: newStatus,
+          status_id: newStatus,
           created_by: user?.id,
           updated_by: user?.id,
         },
@@ -284,7 +292,8 @@ const AttendancePage = () => {
             (_, i) => {
               const date = formatDate(currentYear, currentMonth, i + 1);
               // Use employee.id (integer) to look up attendance
-              return attendanceData[employee.id]?.[date] || "";
+              const statusId = attendanceData[employee.id]?.[date];
+              return statusId ? statusMap[statusId] || "" : "";
             }
           ),
         ];
@@ -416,6 +425,7 @@ const AttendancePage = () => {
                 itemsPerPage={itemsPerPage}
                 canWriteAttendance={canWriteAttendance}
                 canManageEmployees={canManageEmployees}
+                statusMap={statusMap}
               />
 
               <Pagination

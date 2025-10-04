@@ -1,71 +1,71 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { usePermissions } from "../hooks/usePermissions.jsx";
-import { Plus, Edit, Trash2, Building, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Clock, Search } from "lucide-react";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import toast from "react-hot-toast";
 
-const DepartmentsPage = () => {
+const AttendanceStatusesPage = () => {
   const { canManageEmployees } = usePermissions();
-  const [departments, setDepartments] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+  const [filteredStatuses, setFilteredStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
-  const [newDepartmentName, setNewDepartmentName] = useState("");
-  const [editDepartmentName, setEditDepartmentName] = useState("");
-  const [editDepartmentActive, setEditDepartmentActive] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  const [newStatusName, setNewStatusName] = useState("");
+  const [editStatusName, setEditStatusName] = useState("");
+  const [editStatusActive, setEditStatusActive] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchDepartments();
+    fetchStatuses();
   }, []);
 
-  const fetchDepartments = async () => {
+  const fetchStatuses = async () => {
     try {
       const { data, error } = await supabase
-        .from("departments")
+        .from("attendance_statuses")
         .select("*")
         .order("name");
 
       if (error) throw error;
-      setDepartments(data || []);
-      setFilteredDepartments(data || []);
+      setStatuses(data || []);
+      setFilteredStatuses(data || []);
     } catch (error) {
-      console.error("Error fetching departments:", error);
+      console.error("Error fetching attendance statuses:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter departments based on search term
+  // Filter statuses based on search term
   useEffect(() => {
     if (searchTerm.trim() === "") {
-      setFilteredDepartments(departments);
+      setFilteredStatuses(statuses);
     } else {
-      const filtered = departments.filter((dept) =>
-        dept.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = statuses.filter((status) =>
+        status.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredDepartments(filtered);
+      setFilteredStatuses(filtered);
     }
-  }, [departments, searchTerm]);
+  }, [statuses, searchTerm]);
 
-  const handleAddDepartment = async () => {
-    if (!newDepartmentName.trim()) return;
+  const handleAddStatus = async () => {
+    if (!newStatusName.trim()) return;
 
     setAdding(true);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { error } = await supabase.from("departments").insert([
+      const { error } = await supabase.from("attendance_statuses").insert([
         {
-          name: newDepartmentName.trim(),
+          name: newStatusName.trim(),
           created_by: user.id,
           updated_by: user.id,
         },
@@ -73,20 +73,20 @@ const DepartmentsPage = () => {
 
       if (error) throw error;
 
-      setNewDepartmentName("");
+      setNewStatusName("");
       setShowAddDialog(false);
-      fetchDepartments();
-      toast.success("Department added successfully!");
+      fetchStatuses();
+      toast.success("Attendance status added successfully!");
     } catch (error) {
-      console.error("Error adding department:", error);
-      toast.error("Error adding department. It might already exist.");
+      console.error("Error adding attendance status:", error);
+      toast.error("Error adding attendance status. It might already exist.");
     } finally {
       setAdding(false);
     }
   };
 
-  const handleEditDepartment = async () => {
-    if (!editDepartmentName.trim() || !selectedDepartment) return;
+  const handleEditStatus = async () => {
+    if (!editStatusName.trim() || !selectedStatus) return;
 
     setEditing(true);
     try {
@@ -94,18 +94,18 @@ const DepartmentsPage = () => {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // If disabling, check if employees are using it
-      if (selectedDepartment.is_active && !editDepartmentActive) {
-        const { data: employeesUsingDept, error: checkError } = await supabase
-          .from("employees")
+      // If disabling, check if attendance records are using it
+      if (selectedStatus.is_active && !editStatusActive) {
+        const { data: attendanceUsingStatus, error: checkError } = await supabase
+          .from("attendance")
           .select("id", { count: "exact" })
-          .eq("department_id", selectedDepartment.id);
+          .eq("status_id", selectedStatus.id);
 
         if (checkError) throw checkError;
 
-        if (employeesUsingDept && employeesUsingDept.length > 0) {
+        if (attendanceUsingStatus && attendanceUsingStatus.length > 0) {
           toast.error(
-            `Cannot disable department "${selectedDepartment.name}" because it is currently assigned to ${employeesUsingDept.length} employee(s). Please reassign or remove these employees first.`
+            `Cannot disable attendance status "${selectedStatus.name}" because it is currently used in ${attendanceUsingStatus.length} attendance record(s). Please update or remove these records first.`
           );
           setEditing(false);
           return;
@@ -113,81 +113,81 @@ const DepartmentsPage = () => {
       }
 
       const { error } = await supabase
-        .from("departments")
+        .from("attendance_statuses")
         .update({
-          name: editDepartmentName.trim(),
-          is_active: editDepartmentActive,
+          name: editStatusName.trim(),
+          is_active: editStatusActive,
           updated_by: user.id,
         })
-        .eq("id", selectedDepartment.id);
+        .eq("id", selectedStatus.id);
 
       if (error) throw error;
 
-      setEditDepartmentName("");
-      setEditDepartmentActive(true);
+      setEditStatusName("");
+      setEditStatusActive(true);
       setShowEditDialog(false);
-      setSelectedDepartment(null);
-      fetchDepartments();
-      toast.success("Department updated successfully!");
+      setSelectedStatus(null);
+      fetchStatuses();
+      toast.success("Attendance status updated successfully!");
     } catch (error) {
-      console.error("Error updating department:", error);
-      toast.error("Error updating department. It might already exist.");
+      console.error("Error updating attendance status:", error);
+      toast.error("Error updating attendance status. It might already exist.");
     } finally {
       setEditing(false);
     }
   };
 
-  const handleDeleteDepartment = async () => {
-    if (!selectedDepartment) return;
+  const handleDeleteStatus = async () => {
+    if (!selectedStatus) return;
 
     setDeleting(true);
     try {
-      // First check if any employees are using this department
-      const { data: employeesUsingDept, error: checkError } = await supabase
-        .from("employees")
+      // First check if any attendance records are using this status
+      const { data: attendanceUsingStatus, error: checkError } = await supabase
+        .from("attendance")
         .select("id", { count: "exact" })
-        .eq("department_id", selectedDepartment.id);
+        .eq("status_id", selectedStatus.id);
 
       if (checkError) throw checkError;
 
-      if (employeesUsingDept && employeesUsingDept.length > 0) {
+      if (attendanceUsingStatus && attendanceUsingStatus.length > 0) {
         toast.error(
-          `Cannot delete department "${selectedDepartment.name}" because it is currently assigned to ${employeesUsingDept.length} employee(s). Please reassign or remove these employees first.`
+          `Cannot delete attendance status "${selectedStatus.name}" because it is currently used in ${attendanceUsingStatus.length} attendance record(s). Please update or remove these records first.`
         );
         setShowDeleteDialog(false);
-        setSelectedDepartment(null);
+        setSelectedStatus(null);
         return;
       }
 
-      // If no employees are using it, proceed with deletion
+      // If no attendance records are using it, proceed with deletion
       const { error } = await supabase
-        .from("departments")
+        .from("attendance_statuses")
         .delete()
-        .eq("id", selectedDepartment.id);
+        .eq("id", selectedStatus.id);
 
       if (error) throw error;
 
       setShowDeleteDialog(false);
-      setSelectedDepartment(null);
-      fetchDepartments();
-      toast.success("Department deleted successfully!");
+      setSelectedStatus(null);
+      fetchStatuses();
+      toast.success("Attendance status deleted successfully!");
     } catch (error) {
-      console.error("Error deleting department:", error);
-      toast.error("Error deleting department. Please try again.");
+      console.error("Error deleting attendance status:", error);
+      toast.error("Error deleting attendance status. Please try again.");
     } finally {
       setDeleting(false);
     }
   };
 
-  const openEditDialog = (department) => {
-    setSelectedDepartment(department);
-    setEditDepartmentName(department.name);
-    setEditDepartmentActive(department.is_active);
+  const openEditDialog = (status) => {
+    setSelectedStatus(status);
+    setEditStatusName(status.name);
+    setEditStatusActive(status.is_active);
     setShowEditDialog(true);
   };
 
-  const openDeleteDialog = (department) => {
-    setSelectedDepartment(department);
+  const openDeleteDialog = (status) => {
+    setSelectedStatus(status);
     setShowDeleteDialog(true);
   };
 
@@ -203,8 +203,8 @@ const DepartmentsPage = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-          <Building className="mr-2" />
-          Departments Management
+          <Clock className="mr-2" />
+          Attendance Statuses Management
         </h1>
         {canManageEmployees && (
           <button
@@ -212,7 +212,7 @@ const DepartmentsPage = () => {
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
           >
             <Plus className="mr-2" size={20} />
-            Add Department
+            Add Status
           </button>
         )}
       </div>
@@ -225,7 +225,7 @@ const DepartmentsPage = () => {
           </div>
           <input
             type="text"
-            placeholder="Search departments..."
+            placeholder="Search attendance statuses..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -258,7 +258,7 @@ const DepartmentsPage = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Department Name
+                Status Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -274,36 +274,36 @@ const DepartmentsPage = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredDepartments.map((department) => (
-              <tr key={department.id} className="hover:bg-gray-50">
+            {filteredStatuses.map((status) => (
+              <tr key={status.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {department.name}
+                  {status.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      department.is_active
+                      status.is_active
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {department.is_active ? "Active" : "Inactive"}
+                    {status.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(department.created_at).toLocaleDateString()}
+                  {new Date(status.created_at).toLocaleDateString()}
                 </td>
                 {canManageEmployees && (
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => openEditDialog(department)}
+                      onClick={() => openEditDialog(status)}
                       className="text-indigo-600 hover:text-indigo-900 mr-3"
                       title="Edit"
                     >
                       <Edit size={16} />
                     </button>
                     <button
-                      onClick={() => openDeleteDialog(department)}
+                      onClick={() => openDeleteDialog(status)}
                       className="text-red-600 hover:text-red-900"
                       title="Delete"
                     >
@@ -317,21 +317,21 @@ const DepartmentsPage = () => {
         </table>
       </div>
 
-      {/* Add Department Dialog */}
+      {/* Add Status Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Add New Department
+                Add New Attendance Status
               </h3>
               <input
                 type="text"
-                value={newDepartmentName}
-                onChange={(e) => setNewDepartmentName(e.target.value)}
-                placeholder="Department name"
+                value={newStatusName}
+                onChange={(e) => setNewStatusName(e.target.value)}
+                placeholder="Status name"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onKeyPress={(e) => e.key === "Enter" && handleAddDepartment()}
+                onKeyPress={(e) => e.key === "Enter" && handleAddStatus()}
               />
               <div className="flex justify-end mt-4 space-x-2">
                 <button
@@ -341,7 +341,7 @@ const DepartmentsPage = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={handleAddDepartment}
+                  onClick={handleAddStatus}
                   disabled={adding}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
@@ -359,31 +359,31 @@ const DepartmentsPage = () => {
         </div>
       )}
 
-      {/* Edit Department Dialog */}
+      {/* Edit Status Dialog */}
       {showEditDialog && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Edit Department
+                Edit Attendance Status
               </h3>
               <input
                 type="text"
-                value={editDepartmentName}
-                onChange={(e) => setEditDepartmentName(e.target.value)}
-                placeholder="Department name"
+                value={editStatusName}
+                onChange={(e) => setEditStatusName(e.target.value)}
+                placeholder="Status name"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-                onKeyPress={(e) => e.key === "Enter" && handleEditDepartment()}
+                onKeyPress={(e) => e.key === "Enter" && handleEditStatus()}
               />
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  id="editDepartmentActive"
-                  checked={editDepartmentActive}
-                  onChange={(e) => setEditDepartmentActive(e.target.checked)}
+                  id="editStatusActive"
+                  checked={editStatusActive}
+                  onChange={(e) => setEditStatusActive(e.target.checked)}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="editDepartmentActive" className="ml-2 text-sm text-gray-900">
+                <label htmlFor="editStatusActive" className="ml-2 text-sm text-gray-900">
                   Active
                 </label>
               </div>
@@ -395,7 +395,7 @@ const DepartmentsPage = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={handleEditDepartment}
+                  onClick={handleEditStatus}
                   disabled={editing}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
@@ -416,11 +416,11 @@ const DepartmentsPage = () => {
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         isOpen={showDeleteDialog}
-        title="Delete Department"
-        message={`Are you sure you want to delete "${selectedDepartment?.name}"? This action cannot be undone and may affect employees assigned to this department.`}
+        title="Delete Attendance Status"
+        message={`Are you sure you want to delete "${selectedStatus?.name}"? This action cannot be undone and may affect attendance records using this status.`}
         confirmText="Delete"
         cancelText="Cancel"
-        onConfirm={handleDeleteDepartment}
+        onConfirm={handleDeleteStatus}
         onCancel={() => setShowDeleteDialog(false)}
         type="danger"
         isLoading={deleting}
@@ -429,4 +429,4 @@ const DepartmentsPage = () => {
   );
 };
 
-export default DepartmentsPage;
+export default AttendanceStatusesPage;

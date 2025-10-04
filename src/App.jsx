@@ -5,13 +5,15 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import LoginPage from "./pages/LoginPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage"; // Add this import
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import EmployeeRegistrationPage from "./pages/EmployeeRegistrationPage";
 import EditEmployeePage from "./pages/EditEmployeePage";
 import AttendancePage from "./pages/AttendancePage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
+import AttendanceStatusesPage from "./pages/AttendanceStatusesPage";
 import Sidebar from "./components/Sidebar";
 import { supabase } from "./lib/supabase";
 import { PermissionsProvider } from "./hooks/usePermissions.jsx";
@@ -93,6 +95,7 @@ function App() {
     <PermissionsProvider>
       <Router>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <Toaster position="top-right" />
           <Routes>
             <Route
               path="/login"
@@ -120,6 +123,18 @@ function App() {
                 isLoggedIn ? (
                   <AuthenticatedLayout>
                     <DepartmentsPage />
+                  </AuthenticatedLayout>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/attendance-statuses"
+              element={
+                isLoggedIn ? (
+                  <AuthenticatedLayout>
+                    <AttendanceStatusesPage />
                   </AuthenticatedLayout>
                 ) : (
                   <Navigate to="/login" />

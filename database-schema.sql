@@ -22,6 +22,17 @@ CREATE TABLE IF NOT EXISTS departments (
   updated_by UUID REFERENCES auth.users(id)
 );
 
+-- Create attendance_statuses table
+CREATE TABLE IF NOT EXISTS attendance_statuses (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) UNIQUE NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id),
+  updated_by UUID REFERENCES auth.users(id)
+);
+
 -- Create employees table
 CREATE TABLE IF NOT EXISTS employees (
   id SERIAL PRIMARY KEY,
@@ -41,7 +52,7 @@ CREATE TABLE IF NOT EXISTS attendance (
   id SERIAL PRIMARY KEY,
   employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'on_duty','on_leave', 'sick', 'an_excuse', 'holiday')),
+  status_id INTEGER NOT NULL REFERENCES attendance_statuses(id),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   created_by UUID REFERENCES auth.users(id),
@@ -75,10 +86,13 @@ CREATE INDEX IF NOT EXISTS idx_employees_employee_id ON employees(employee_id);
 CREATE INDEX IF NOT EXISTS idx_employees_is_active ON employees(is_active);
 CREATE INDEX IF NOT EXISTS idx_employees_department_id ON employees(department_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_employee_date ON attendance(employee_id, date);
-CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance(status);
-CREATE INDEX IF NOT EXISTS idx_attendance_date_status ON attendance(date, status);
+CREATE INDEX IF NOT EXISTS idx_attendance_status_id ON attendance(status_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date_status_id ON attendance(date, status_id);
 CREATE INDEX IF NOT EXISTS idx_departments_name ON departments(name);
 CREATE INDEX IF NOT EXISTS idx_departments_is_active ON departments(is_active);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_statuses_name ON attendance_statuses(name);
+CREATE INDEX IF NOT EXISTS idx_attendance_statuses_is_active ON attendance_statuses(is_active);
 
 -- Trigger for Updated Timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -92,6 +106,11 @@ $$ language 'plpgsql';
 -- Create triggers for updated_at
 CREATE TRIGGER update_departments_updated_at
     BEFORE UPDATE ON departments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_attendance_statuses_updated_at
+    BEFORE UPDATE ON attendance_statuses
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -196,6 +215,16 @@ INSERT INTO departments (name) VALUES
 ('Engineering'),
 ('Training'),
 ('Geospatial');
+
+INSERT INTO attendance_statuses (name) VALUES
+('Present'),
+('Absent'),
+('On Duty'),
+('On Leave'),
+('Sick'),
+('An Excuse'),
+('Holiday'),
+('Maternity');
 
 INSERT INTO employees (employee_id, full_name, department_id, mobile_number) VALUES
 ('GMDQS00001', 'Ahmed Maxamed', (SELECT id FROM departments WHERE name = 'Engineering'), '+252613656021'),

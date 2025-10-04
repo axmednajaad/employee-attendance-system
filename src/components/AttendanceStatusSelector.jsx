@@ -1,190 +1,93 @@
-// import React, { useState } from 'react';
-// import { 
-//   CheckCircle, 
-//   XCircle, 
-//   Clock 
-// } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import { CheckCircle, XCircle, Clock, MoreVertical } from "lucide-react";
+import { useAttendanceStatuses } from "../hooks/useAttendanceStatuses";
 
-// const AttendanceStatusSelector = ({ 
-//   employeeId, 
-//   date, 
-//   status, 
-//   onSave,
-//   saving 
-// }) => {
-//   const [isOpen, setIsOpen] = useState(false);
-  
-//   // Get attendance status options
-//   const statusOptions = [
-//     { value: 'present', label: 'Present', icon: CheckCircle, color: 'green' },
-//     { value: 'absent', label: 'Absent', icon: XCircle, color: 'red' },
-//     { value: 'on_leave', label: 'On Leave', icon: Clock, color: 'yellow' }
-//   ];
-
-//   // Get the selected option for display
-//   const selectedOption = statusOptions.find(option => option.value === status);
-
-//   // Handle status selection
-//   const handleSelect = (newStatus) => {
-//     onSave(employeeId, date, newStatus);
-//     setIsOpen(false);
-//   };
-
-//   // Reset status
-//   const handleReset = () => {
-//     onSave(employeeId, date, '');
-//   };
-
-//   if (selectedOption) {
-//     return (
-//       <div className="relative">
-//         <button
-//           onClick={handleReset}
-//           className={`flex items-center justify-center w-24 h-10 rounded-lg border-2 font-medium text-sm transition-all duration-200 transform hover:scale-105 ${
-//             selectedOption.value === 'present' 
-//               ? 'bg-green-100 border-green-500 text-green-700 hover:bg-green-200' 
-//               : selectedOption.value === 'absent' 
-//               ? 'bg-red-100 border-red-500 text-red-700 hover:bg-red-200' 
-//               : 'bg-yellow-100 border-yellow-500 text-yellow-700 hover:bg-yellow-200'
-//           }`}
-//           disabled={saving}
-//           title="Click to reset"
-//         >
-//           <selectedOption.icon className="h-4 w-4 mr-1" />
-//           <span>{selectedOption.label}</span>
-//         </button>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="relative">
-//       <button
-//         onClick={() => setIsOpen(!isOpen)}
-//         className="flex items-center justify-center w-24 h-10 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
-//         disabled={saving}
-//       >
-//         <span>Select</span>
-//       </button>
-      
-//       {isOpen && (
-//         <div className="absolute z-20 mt-1 w-24 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-//           <div className="py-1">
-//             {statusOptions.map((option) => {
-//               const Icon = option.icon;
-//               return (
-//                 <button
-//                   key={option.value}
-//                   onClick={() => handleSelect(option.value)}
-//                   className={`flex items-center w-full px-3 py-2 text-sm ${
-//                     option.value === 'present' 
-//                       ? 'text-green-700 hover:bg-green-100' 
-//                       : option.value === 'absent' 
-//                       ? 'text-red-700 hover:bg-red-100' 
-//                       : 'text-yellow-700 hover:bg-yellow-100'
-//                   }`}
-//                 >
-//                   <Icon className="h-4 w-4 mr-2" />
-//                   <span>{option.label}</span>
-//                 </button>
-//               );
-//             })}
-//           </div>
-//         </div>
-//       )}
-      
-//       {isOpen && (
-//         <div 
-//           className="fixed inset-0 z-10" 
-//           onClick={() => setIsOpen(false)}
-//         ></div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default AttendanceStatusSelector;
-
-import React, { useState, useRef, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, MoreVertical } from 'lucide-react';
-import { ATTENDANCE_STATUSES } from '../constants/attendanceStatuses';
-
-const AttendanceStatusSelector = ({ 
-  employeeId, 
-  date, 
-  status, 
+const AttendanceStatusSelector = ({
+  employeeId,
+  date,
+  status,
   onSave,
-  saving 
+  saving,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  
+  const { statuses } = useAttendanceStatuses();
+
   // Get attendance status options
-  const statusOptions = ATTENDANCE_STATUSES.map((status) => {
+  const statusOptions = statuses.map((status) => {
     let icon, color, bgColor, borderColor, textColor;
-    switch (status) {
-      case 'Present':
+    switch (status.name) {
+      case "Present":
         icon = CheckCircle;
-        color = 'green';
-        bgColor = 'bg-green-50';
-        borderColor = 'border-green-200';
-        textColor = 'text-green-700';
+        color = "green";
+        bgColor = "bg-green-50";
+        borderColor = "border-green-200";
+        textColor = "text-green-700";
         break;
-      case 'Absent':
+      case "Absent":
         icon = XCircle;
-        color = 'red';
-        bgColor = 'bg-red-50';
-        borderColor = 'border-red-200';
-        textColor = 'text-red-700';
+        color = "red";
+        bgColor = "bg-red-50";
+        borderColor = "border-red-200";
+        textColor = "text-red-700";
         break;
-      case 'On duty':
+      case "On Duty":
         icon = Clock;
-        color = 'blue';
-        bgColor = 'bg-blue-50';
-        borderColor = 'border-blue-200';
-        textColor = 'text-blue-700';
+        color = "blue";
+        bgColor = "bg-blue-50";
+        borderColor = "border-blue-200";
+        textColor = "text-blue-700";
         break;
-      case 'Sick':
+      case "Sick":
         icon = Clock;
-        color = 'orange';
-        bgColor = 'bg-orange-50';
-        borderColor = 'border-orange-200';
-        textColor = 'text-orange-700';
+        color = "orange";
+        bgColor = "bg-orange-50";
+        borderColor = "border-orange-200";
+        textColor = "text-orange-700";
         break;
-      case 'An Excuse':
+      case "An Excuse":
         icon = Clock;
-        color = 'purple';
-        bgColor = 'bg-purple-50';
-        borderColor = 'border-purple-200';
-        textColor = 'text-purple-700';
+        color = "purple";
+        bgColor = "bg-purple-50";
+        borderColor = "border-purple-200";
+        textColor = "text-purple-700";
         break;
-      case 'Holiday':
+      case "Holiday":
         icon = Clock;
-        color = 'yellow';
-        bgColor = 'bg-yellow-50';
-        borderColor = 'border-yellow-200';
-        textColor = 'text-yellow-700';
+        color = "yellow";
+        bgColor = "bg-yellow-50";
+        borderColor = "border-yellow-200";
+        textColor = "text-yellow-700";
+        break;
+      case "Maternity":
+        icon = Clock;
+        color = "pink";
+        bgColor = "bg-pink-50";
+        borderColor = "border-pink-200";
+        textColor = "text-pink-700";
         break;
       default:
         icon = Clock;
-        color = 'gray';
-        bgColor = 'bg-gray-50';
-        borderColor = 'border-gray-200';
-        textColor = 'text-gray-700';
+        color = "gray";
+        bgColor = "bg-gray-50";
+        borderColor = "border-gray-200";
+        textColor = "text-gray-700";
     }
     return {
-      value: status.toLowerCase().replace(' ', '_'),
-      label: status,
+      value: status.id,
+      label: status.name,
       icon,
       color,
       bgColor,
       borderColor,
-      textColor
+      textColor,
     };
   });
 
   // Get the selected option for display
-  const selectedOption = statusOptions.find(option => option.value === status);
+  const selectedOption = statusOptions.find(
+    (option) => option.value === status
+  );
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -194,9 +97,9 @@ const AttendanceStatusSelector = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -208,7 +111,7 @@ const AttendanceStatusSelector = ({
 
   // Reset status
   const handleReset = () => {
-    onSave(employeeId, date, '');
+    onSave(employeeId, date, "");
     setIsOpen(false);
   };
 
@@ -219,8 +122,12 @@ const AttendanceStatusSelector = ({
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`flex items-center justify-between w-28 h-9 rounded-lg border font-medium text-sm transition-all duration-200 hover:shadow-md ${
-            selectedOption.bgColor + ' ' + selectedOption.borderColor + ' ' + selectedOption.textColor
-          } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            selectedOption.bgColor +
+            " " +
+            selectedOption.borderColor +
+            " " +
+            selectedOption.textColor
+          } ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
           disabled={saving}
         >
           <div className="flex items-center px-2">
@@ -229,7 +136,7 @@ const AttendanceStatusSelector = ({
           </div>
           <MoreVertical className="h-3 w-3 mr-1 opacity-60" />
         </button>
-        
+
         {isOpen && (
           <div className="absolute z-50 mt-1 w-40 rounded-lg shadow-xl bg-white border border-gray-200 transform origin-top-right">
             <div className="py-1">
@@ -239,13 +146,13 @@ const AttendanceStatusSelector = ({
               {statusOptions.map((option) => {
                 const OptionIcon = option.icon;
                 if (option.value === status) return null; // Don't show current status as option
-                
+
                 return (
                   <button
                     key={option.value}
                     onClick={() => handleSelect(option.value)}
                     className={`flex items-center w-full px-3 py-2 text-sm transition-colors duration-150 ${
-                      option.textColor + ' hover:' + option.bgColor
+                      option.textColor + " hover:" + option.bgColor
                     }`}
                   >
                     <OptionIcon className="h-4 w-4 mr-3" />
@@ -278,7 +185,7 @@ const AttendanceStatusSelector = ({
         <span>Select</span>
         <MoreVertical className="h-3 w-3 ml-1 opacity-60" />
       </button>
-      
+
       {isOpen && (
         <div className="absolute z-50 mt-1 w-40 rounded-lg shadow-xl bg-white border border-gray-200 transform origin-top-right">
           <div className="py-1">
@@ -292,7 +199,7 @@ const AttendanceStatusSelector = ({
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
                   className={`flex items-center w-full px-3 py-2 text-sm transition-colors duration-150 ${
-                    option.textColor + ' hover:' + option.bgColor
+                    option.textColor + " hover:" + option.bgColor
                   }`}
                 >
                   <Icon className="h-4 w-4 mr-3" />

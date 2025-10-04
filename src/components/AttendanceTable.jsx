@@ -16,11 +16,34 @@ const AttendanceTable = ({
   canWriteAttendance,
   canManageEmployees,
   onDeleteEmployee, // Add this prop
+  statusMap,
 }) => {
   const navigate = useNavigate();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Helper function to get status class
+  const getStatusClass = (statusName) => {
+    switch (statusName) {
+      case 'Present':
+        return 'bg-green-100 text-green-800';
+      case 'Absent':
+        return 'bg-red-100 text-red-800';
+      case 'On Leave':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Sick':
+        return 'bg-orange-100 text-orange-800';
+      case 'An Excuse':
+        return 'bg-purple-100 text-purple-800';
+      case 'Holiday':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Maternity':
+        return 'bg-pink-100 text-pink-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   // Get days in month
   const getDaysInMonth = (year, month) => {
@@ -214,23 +237,9 @@ const AttendanceTable = ({
                           <div className="flex items-center justify-center w-28 h-9 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-600">
                             {status ? (
                               <span
-                                className={`px-2 py-1 rounded text-xs font-medium ${
-                                  status === "present"
-                                    ? "bg-green-100 text-green-800"
-                                    : status === "absent"
-                                    ? "bg-red-100 text-red-800"
-                                    : status === "on_leave"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : status === "sick"
-                                    ? "bg-orange-100 text-orange-800"
-                                    : status === "an_excuse"
-                                    ? "bg-purple-100 text-purple-800"
-                                    : "bg-gray-100 text-gray-800"
-                                }`}
+                                className={`px-2 py-1 rounded text-xs font-medium ${getStatusClass(statusMap[status])}`}
                               >
-                                {status
-                                  .replace("_", " ")
-                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                                {statusMap[status]}
                               </span>
                             ) : (
                               <span className="text-gray-400">No data</span>
