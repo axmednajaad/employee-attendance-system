@@ -426,6 +426,7 @@ const AttendancePage = () => {
                 canWriteAttendance={canWriteAttendance}
                 canManageEmployees={canManageEmployees}
                 statusMap={statusMap}
+                statuses={statuses}
               />
 
               <Pagination

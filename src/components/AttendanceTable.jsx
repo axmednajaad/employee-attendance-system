@@ -17,6 +17,7 @@ const AttendanceTable = ({
   canManageEmployees,
   onDeleteEmployee, // Add this prop
   statusMap,
+  statuses,
 }) => {
   const navigate = useNavigate();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -232,6 +233,7 @@ const AttendanceTable = ({
                             status={status}
                             onSave={onStatusChange}
                             saving={saving}
+                            statuses={statuses}
                           />
                         ) : (
                           <div className="flex items-center justify-center w-28 h-9 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-600">

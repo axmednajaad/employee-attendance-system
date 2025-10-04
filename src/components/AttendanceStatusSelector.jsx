@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import { CheckCircle, XCircle, Clock, MoreVertical } from "lucide-react";
-import { useAttendanceStatuses } from "../hooks/useAttendanceStatuses";
 
 const AttendanceStatusSelector = ({
   employeeId,
@@ -8,10 +7,10 @@ const AttendanceStatusSelector = ({
   status,
   onSave,
   saving,
+  statuses,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { statuses } = useAttendanceStatuses();
 
   // Get attendance status options
   const statusOptions = statuses.map((status) => {
@@ -214,4 +213,4 @@ const AttendanceStatusSelector = ({
   );
 };
 
-export default AttendanceStatusSelector;
+export default memo(AttendanceStatusSelector);
