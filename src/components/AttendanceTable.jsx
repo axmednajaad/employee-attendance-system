@@ -27,22 +27,22 @@ const AttendanceTable = ({
   // Helper function to get status class
   const getStatusClass = (statusName) => {
     switch (statusName) {
-      case 'Present':
-        return 'bg-green-100 text-green-800';
-      case 'Absent':
-        return 'bg-red-100 text-red-800';
-      case 'On Leave':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Sick':
-        return 'bg-orange-100 text-orange-800';
-      case 'An Excuse':
-        return 'bg-purple-100 text-purple-800';
-      case 'Holiday':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Maternity':
-        return 'bg-pink-100 text-pink-800';
+      case "Present":
+        return "bg-green-100 text-green-800";
+      case "Absent":
+        return "bg-red-100 text-red-800";
+      case "On Leave":
+        return "bg-yellow-100 text-yellow-800";
+      case "Sick":
+        return "bg-orange-100 text-orange-800";
+      case "An Excuse":
+        return "bg-purple-100 text-purple-800";
+      case "Holiday":
+        return "bg-yellow-100 text-yellow-800";
+      case "Maternity":
+        return "bg-pink-100 text-pink-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -168,7 +168,7 @@ const AttendanceTable = ({
                 key={employee.id}
                 className="hover:bg-gray-50 transition-colors"
               >
-                <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-5">
+                <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
                       <span className="text-indigo-800 font-medium">
@@ -239,7 +239,9 @@ const AttendanceTable = ({
                           <div className="flex items-center justify-center w-28 h-9 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-600">
                             {status ? (
                               <span
-                                className={`px-2 py-1 rounded text-xs font-medium ${getStatusClass(statusMap[status])}`}
+                                className={`px-2 py-1 rounded text-xs font-medium ${getStatusClass(
+                                  statusMap[status]
+                                )}`}
                               >
                                 {statusMap[status]}
                               </span>
