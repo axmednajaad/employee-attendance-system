@@ -14,6 +14,7 @@ import AttendancePage from "./pages/AttendancePage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import AttendanceStatusesPage from "./pages/AttendanceStatusesPage";
+import AttendanceReportPage from "./pages/AttendanceReportPage";
 import Sidebar from "./components/Sidebar";
 import { supabase } from "./lib/supabase";
 import { PermissionsProvider } from "./hooks/usePermissions.jsx";
@@ -135,6 +136,18 @@ function App() {
                 isLoggedIn ? (
                   <AuthenticatedLayout>
                     <AttendanceStatusesPage />
+                  </AuthenticatedLayout>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/attendance-report"
+              element={
+                isLoggedIn ? (
+                  <AuthenticatedLayout>
+                    <AttendanceReportPage />
                   </AuthenticatedLayout>
                 ) : (
                   <Navigate to="/login" />
