@@ -105,11 +105,6 @@ const AttendanceReportPage = () => {
       return;
     }
 
-    if (!selectedDepartment && !selectedEmployee) {
-      toast.error("Please select department or specific employee");
-      return;
-    }
-
     if (new Date(startDate) > new Date(endDate)) {
       toast.error("Start date cannot be after end date");
       return;
@@ -117,28 +112,33 @@ const AttendanceReportPage = () => {
 
     setLoading(true);
     try {
+      // Convert empty string to null for "All Departments"
+      const departmentId =
+        selectedDepartment === "" ? null : selectedDepartment;
+      const employeeId = selectedEmployee === "" ? null : selectedEmployee;
+
       // Get detailed report using RPC function
       const { data: reportData, error: reportError } = await supabase.rpc(
         "get_attendance_report",
         {
-          p_department_id: selectedDepartment || null,
-          p_employee_id: selectedEmployee || null,
-          p_start_date: startDate || null,
-          p_end_date: endDate || null,
+          p_department_id: departmentId,
+          p_employee_id: employeeId,
+          p_start_date: startDate,
+          p_end_date: endDate,
         }
       );
 
       if (reportError) throw reportError;
 
-      // Get department summary if department is selected
+      // Get summary data
       let summaryData = null;
-      if (selectedDepartment && !selectedEmployee) {
+      if (!selectedEmployee) {
         const { data: summary, error: summaryError } = await supabase.rpc(
           "get_department_summary",
           {
-            p_department_id: selectedDepartment,
-            p_start_date: startDate || null,
-            p_end_date: endDate || null,
+            p_department_id: departmentId,
+            p_start_date: startDate,
+            p_end_date: endDate,
           }
         );
 
@@ -147,35 +147,12 @@ const AttendanceReportPage = () => {
         }
       }
 
+      // Set report data
+      setReportData(reportData || []);
+
+      // Set summary based on report type
       if (selectedEmployee) {
-        // Single employee report - need to get detailed attendance data
-        const { data: attendanceData, error: attendanceError } = await supabase
-          .from("attendance")
-          .select(
-            `
-            date,
-            status_id,
-            attendance_statuses!inner (
-              name
-            )
-          `
-          )
-          .eq("employee_id", selectedEmployee)
-          .gte("date", startDate)
-          .lte("date", endDate)
-          .order("date");
-
-        if (attendanceError) throw attendanceError;
-
-        const formattedData = attendanceData.map((record) => ({
-          date: record.date,
-          status: record.attendance_statuses.name,
-          statusId: record.status_id,
-        }));
-
-        setReportData(formattedData);
-
-        // Use summary from RPC for single employee
+        // Single employee report
         if (reportData && reportData.length > 0) {
           const empSummary = reportData[0];
           setSummary({
@@ -185,19 +162,21 @@ const AttendanceReportPage = () => {
             Holiday: empSummary.holiday_days,
             "On Leave": empSummary.leave_days,
             Other: empSummary.other_days,
+            attendancePercentage: empSummary.attendance_percentage,
           });
         } else {
           setSummary({
-            totalDays: formattedData.length,
-            ...formattedData.reduce((acc, record) => {
-              acc[record.status] = (acc[record.status] || 0) + 1;
-              return acc;
-            }, {}),
+            totalDays: 0,
+            Present: 0,
+            Absent: 0,
+            Holiday: 0,
+            "On Leave": 0,
+            Other: 0,
+            attendancePercentage: 0,
           });
         }
       } else {
-        // Department report - use RPC data
-        setReportData(reportData || []);
+        // Department report (single or all departments)
         setSummary(
           summaryData
             ? {
@@ -209,10 +188,12 @@ const AttendanceReportPage = () => {
                 Holiday: summaryData.total_holidays,
                 "On Leave": summaryData.total_leaves,
                 attendancePercentage: summaryData.overall_attendance_percentage,
+                isAllDepartments: !selectedDepartment, // Add flag for all departments
               }
             : {
                 departmentReport: true,
                 employeeCount: (reportData || []).length,
+                isAllDepartments: !selectedDepartment, // Add flag for all departments
               }
         );
       }
@@ -226,6 +207,119 @@ const AttendanceReportPage = () => {
     }
   };
 
+  // const exportToCSV = () => {
+  //   if (reportData.length === 0) {
+  //     toast.error("No data to export");
+  //     return;
+  //   }
+
+  //   setGenerating(true);
+  //   try {
+  //     let csvContent = "";
+  //     const filename = selectedEmployee
+  //       ? `attendance_report_${
+  //           employees.find((emp) => emp.id == selectedEmployee)?.employee_id ||
+  //           "unknown"
+  //         }_${startDate}_to_${endDate}.csv`
+  //       : `department_report_${
+  //           departments.find((dept) => dept.id == selectedDepartment)?.name ||
+  //           "unknown"
+  //         }_${startDate}_to_${endDate}.csv`;
+
+  //     if (summary.departmentReport) {
+  //       // Department report export
+  //       const headers = [
+  //         "Employee ID",
+  //         "Employee Name",
+  //         "Department",
+  //         "Total Days",
+  //         "Present",
+  //         "Absent",
+  //         "Holiday",
+  //         "On Leave",
+  //         "Other",
+  //         "Attendance %",
+  //       ];
+  //       const rows = reportData.map((employee) => [
+  //         employee.employee_code,
+  //         employee.full_name,
+  //         employee.department_name,
+  //         employee.total_days,
+  //         employee.present_days,
+  //         employee.absent_days,
+  //         employee.holiday_days,
+  //         employee.leave_days,
+  //         employee.other_days,
+  //         `${employee.attendance_percentage}%`,
+  //       ]);
+
+  //       csvContent = [headers, ...rows]
+  //         .map((row) => row.map((field) => `"${field}"`).join(","))
+  //         .join("\n");
+  //     } else {
+  //       // Single employee report export
+  //       const selectedEmployeeData = employees.find(
+  //         (emp) => emp.id == selectedEmployee
+  //       );
+  //       const employeeInfo = selectedEmployeeData
+  //         ? {
+  //             id: selectedEmployeeData.employee_id,
+  //             name: selectedEmployeeData.full_name,
+  //             mobile: selectedEmployeeData.mobile_number,
+  //             department: selectedEmployeeData.department,
+  //           }
+  //         : {
+  //             id: "Unknown",
+  //             name: "Unknown",
+  //             mobile: "",
+  //             department: "",
+  //           };
+
+  //       const headers = [
+  //         "Employee ID",
+  //         "Employee Name",
+  //         "Mobile Number",
+  //         "Department",
+  //         "Date",
+  //         "Day",
+  //         "Status",
+  //       ];
+  //       const rows = reportData.map((record) => [
+  //         employeeInfo.id,
+  //         employeeInfo.name,
+  //         employeeInfo.mobile,
+  //         employeeInfo.department,
+  //         record.date,
+  //         new Date(record.date).toLocaleDateString("en-US", {
+  //           weekday: "long",
+  //         }),
+  //         record.status,
+  //       ]);
+
+  //       csvContent = [headers, ...rows]
+  //         .map((row) => row.map((field) => `"${field}"`).join(","))
+  //         .join("\n");
+  //     }
+
+  //     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  //     const url = URL.createObjectURL(blob);
+  //     const link = document.createElement("a");
+  //     link.setAttribute("href", url);
+  //     link.setAttribute("download", filename);
+  //     link.style.visibility = "hidden";
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+
+  //     toast.success("Report exported successfully");
+  //   } catch (error) {
+  //     console.error("Error exporting:", error);
+  //     toast.error("Error exporting report");
+  //   } finally {
+  //     setGenerating(false);
+  //   }
+  // };
+
   const exportToCSV = () => {
     if (reportData.length === 0) {
       toast.error("No data to export");
@@ -235,18 +329,25 @@ const AttendanceReportPage = () => {
     setGenerating(true);
     try {
       let csvContent = "";
-      const filename = selectedEmployee
-        ? `attendance_report_${
-            employees.find((emp) => emp.id == selectedEmployee)?.employee_id ||
-            "unknown"
-          }_${startDate}_to_${endDate}.csv`
-        : `department_report_${
-            departments.find((dept) => dept.id == selectedDepartment)?.name ||
-            "unknown"
-          }_${startDate}_to_${endDate}.csv`;
+
+      // Generate appropriate filename
+      let filename = "";
+      if (selectedEmployee) {
+        filename = `attendance_report_${
+          employees.find((emp) => emp.id == selectedEmployee)?.employee_id ||
+          "unknown"
+        }_${startDate}_to_${endDate}.csv`;
+      } else if (selectedDepartment) {
+        filename = `department_report_${
+          departments.find((dept) => dept.id == selectedDepartment)?.name ||
+          "unknown"
+        }_${startDate}_to_${endDate}.csv`;
+      } else {
+        filename = `all_departments_report_${startDate}_to_${endDate}.csv`;
+      }
 
       if (summary.departmentReport) {
-        // Department report export
+        // Department report export (single department or all departments)
         const headers = [
           "Employee ID",
           "Employee Name",
@@ -557,10 +658,14 @@ const AttendanceReportPage = () => {
                   <FileText className="h-8 w-8 text-indigo-600" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">
-                      Department Report
+                      {summary.isAllDepartments
+                        ? "All Departments"
+                        : "Department Report"}
                     </p>
                     <p className="text-lg font-bold text-gray-900">
-                      Summary view
+                      {summary.isAllDepartments
+                        ? "All Departments"
+                        : "Summary view"}
                     </p>
                   </div>
                 </div>
@@ -604,6 +709,7 @@ const AttendanceReportPage = () => {
         </div>
       )}
 
+      {/* Report Table */}
       {/* Report Table */}
       {reportData.length > 0 && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -654,6 +760,9 @@ const AttendanceReportPage = () => {
                 {summary.departmentReport ? (
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      #
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Employee ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -675,6 +784,9 @@ const AttendanceReportPage = () => {
                 ) : (
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      #
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -688,11 +800,14 @@ const AttendanceReportPage = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {summary.departmentReport
-                  ? reportData.map((employee) => (
+                  ? reportData.map((employee, index) => (
                       <tr
                         key={employee.employee_id}
                         className="hover:bg-gray-50"
                       >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                          {index + 1}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {employee.employee_code}
                         </td>
@@ -741,6 +856,9 @@ const AttendanceReportPage = () => {
                     ))
                   : reportData.map((record, index) => (
                       <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                          {index + 1}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {new Date(record.date).toLocaleDateString()}
                         </td>
