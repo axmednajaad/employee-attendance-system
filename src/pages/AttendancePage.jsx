@@ -121,20 +121,22 @@ const AttendancePage = () => {
           // Fetch employees with department names
           const { data: employeesData, error: employeesError } = await supabase
             .from("employees")
-            .select(`
+            .select(
+              `
               *,
               departments!inner (
                 name
               )
-            `)
+            `
+            )
             .eq("is_active", true)
             .order("full_name");
 
           if (employeesError) throw employeesError;
           // Flatten department name from join
-          const flattenedEmployees = (employeesData || []).map(emp => ({
+          const flattenedEmployees = (employeesData || []).map((emp) => ({
             ...emp,
-            department: emp.departments?.name || ''
+            department: emp.departments?.name || "",
           }));
           setEmployees(flattenedEmployees);
 
@@ -400,7 +402,7 @@ const AttendancePage = () => {
           getCurrentMonthDays={getCurrentMonthDays}
           yearOptions={yearOptions()}
           monthOptions={monthOptions}
-          departments={departments.map(d => d.name)}
+          departments={departments.map((d) => d.name)}
           canManageEmployees={canManageEmployees}
           canExportData={canExportData}
         />
